@@ -1,0 +1,86 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:best-practices",
+    ":semanticCommitsDisabled"
+  ],
+  "assigneesFromCodeOwners": true,
+  "prConcurrentLimit": 0,
+  "prHourlyLimit": 0,
+  "labels": [
+    "dependencies"
+  ],
+  "rebaseWhen": "conflicted",
+  "minimumReleaseAge": "14 days",
+  "internalChecksFilter": "strict",
+  "packageRules": [
+    {
+      "description": [
+        "Group all the web eslint and type packages together"
+      ],
+      "matchFileNames": [
+        "web/**"
+      ],
+      "matchPackageNames": [
+        "/.*eslint.*/",
+        "typescript"
+      ],
+      "groupName": "web-dependencies-lint",
+      "extends": [
+        "schedule:weekly"
+      ],
+      "addLabels": [
+        "target:web",
+        "type:internal"
+      ],
+      "separateMajorMinor": false,
+      "minimumReleaseAge": "14 days"
+    },
+    {
+      "description": [
+        "Group all the web test packages together"
+      ],
+      "matchFileNames": [
+        "web/**"
+      ],
+      "matchPackageNames": [
+        "/^@vitest.*/",
+        "/^@testing-library.*/",
+        "/^vitest.*/",
+        "jsdom"
+      ],
+      "groupName": "web-dependencies-test",
+      "extends": [
+        "schedule:weekly"
+      ],
+      "addLabels": [
+        "target:web",
+        "type:internal"
+      ],
+      "separateMajorMinor": false,
+      "minimumReleaseAge": "14 days"
+    },
+    {
+      "description": [
+        "Group all the web storybook packages together"
+      ],
+      "matchFileNames": [
+        "web/**"
+      ],
+      "matchPackageNames": [
+        "/.*storybook.*/",
+        "!storybook-react-i18next"
+      ],
+      "groupName": "web-dependencies-storybook",
+      "extends": [
+        "schedule:weekly"
+      ],
+      "addLabels": [
+        "target:web",
+        "type:internal"
+      ],
+      "separateMajorMinor": false,
+      "minimumReleaseAge": "14 days"
+    }
+  ]
+}
