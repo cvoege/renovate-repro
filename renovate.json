@@ -11,6 +11,7 @@
     "dependencies"
   ],
   "rebaseWhen": "conflicted",
+  "ignorePresets": ["security:minimumReleaseAgeNpm"],
   "minimumReleaseAge": "14 days",
   "internalChecksFilter": "strict",
   "packageRules": [
