@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - add-eslint
 
 jobs:
   validate-install:
@@ -21,7 +22,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "2"
+          node-version: "22"
           cache: "pnpm"
 
       - name: Install dependencies
