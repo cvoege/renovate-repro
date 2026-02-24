@@ -13,7 +13,7 @@
   "dependencies": {
     "@tanstack/react-router": "^1.141.0",
     "@tanstack/react-table": "^8.21.3",
-    "eslint": "^10.0.0"
+    "eslint": "10.0.0"
   },
   "devDependencies": {
     "@tanstack/react-router-devtools": "^1.144.0",
