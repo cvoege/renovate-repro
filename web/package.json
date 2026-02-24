@@ -10,7 +10,15 @@
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.26.0",
+  "dependencies": {
+    "@tanstack/react-router": "^1.141.0",
+    "@tanstack/react-table": "^8.21.3"
+  },
   "devDependencies": {
+    "@tanstack/react-router-devtools": "^1.144.0",
+    "@tanstack/router-cli": "^1.144.0",
+    "@tanstack/router-plugin": "^1.144.0",
+    "baseline-browser-mapping": "^2.9.19",
     "sass": "1.96.0"
   }
 }
