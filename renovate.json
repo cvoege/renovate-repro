@@ -1,19 +1,101 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:best-practices",
-    ":semanticCommitsDisabled",
-    ":preserveSemverRanges"
-  ],
+  "extends": ["config:best-practices", ":semanticCommitsDisabled"],
+  "ignorePaths": ["dev/perf-test/**", "**/node_modules/**"],
   "assigneesFromCodeOwners": true,
   "prConcurrentLimit": 0,
   "prHourlyLimit": 0,
+  "prBodyTemplate": "<!--aviator_cut_after_this_mark-->\n{{{header}}}{{{table}}}{{{warnings}}}{{{notes}}}{{{changelogs}}}{{{configDescription}}}{{{controls}}}{{{footer}}}",
+  "postUpdateOptions": ["gomodTidy", "helmUpdateSubChartArchives"],
   "labels": ["dependencies"],
   "rebaseWhen": "conflicted",
-  "ignorePresets": ["security:minimumReleaseAgeNpm"],
-  "minimumReleaseAge": "14 days",
+  "minimumReleaseAge": "7 days",
   "internalChecksFilter": "strict",
+  "customManagers": [
+    {
+      "customType": "jsonata",
+      "managerFilePatterns": [
+        "/charts/my-server/chart/values.yaml/",
+        "/charts/my-system/chart/values.yaml/"
+      ],
+      "fileFormat": "yaml",
+      "matchStrings": [
+        "$each(images, function($v, $k) { $k != \"repository\" and $k != \"pullPolicy\" and $k != \"pullSecrets\" ? {\"depName\":$v.name, \"currentValue\": $v.tag, \"packageName\": $exists($v.repository) ? ($v.repository & \"/\" & $v.name) : (images.repository & \"/\" & $v.name)} : {}})"
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github/actions/setup-build-env/action\\.yaml$/"
+      ],
+      "matchStrings": ["version:\\s+[\"']?(?<currentValue>[0-9.]+)[\"']?"],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "jdx/mise"
+    },
+    {
+      "customType": "regex",
+      "description": "Track dependencies with inline renovate comments in Go files",
+      "managerFilePatterns": ["/\\.go$/"],
+      "matchStrings": [
+        "//\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)\\s*\\n\\s*\\w+\\s*=\\s*\"(?<currentValue>[^\"]+)\""
+      ]
+    },
+    {
+      "customType": "regex",
+      "description": "Track dependencies with inline comments in Tiltfiles and Starlark files",
+      "managerFilePatterns": ["/Tiltfile$/", "/\\.star$/"],
+      "matchStrings": [
+        "#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)\\s*\\n\\s*\\w+\\s*=\\s*[\"'](?<currentValue>[^\"']+)[\"']"
+      ],
+      "packageNameTemplate": "{{{replace '^([^/]+)/(.+)$' '$2' depName}}}",
+      "registryUrlTemplate": "https://{{{replace '^([^/]+)/.+$' '$1-project.github.io/helm-charts/' depName}}}"
+    }
+  ],
   "packageRules": [
+    {
+      "description": ["Enable automatic Go version updates in go.mod"],
+      "matchManagers": ["gomod"],
+      "matchDepNames": ["go"],
+      "matchDepTypes": ["golang"],
+      "rangeStrategy": "bump",
+      "addLabels": ["run-gazelle"],
+      "groupName": "go-version"
+    },
+    {
+      "description": [
+        "Group Go version updates in mise.toml with go.mod updates"
+      ],
+      "matchManagers": ["mise"],
+      "matchDepNames": ["go"],
+      "groupName": "go-version"
+    },
+    {
+      "description": [
+        "Update prometheus version in both helmfile.yaml and Tiltfile together"
+      ],
+      "matchDatasources": ["helm"],
+      "matchPackageNames": ["prometheus-community/prometheus"],
+      "matchFileNames": ["deploy/prometheus/helmfile.yaml"],
+      "postUpgradeTasks": {
+        "commands": [
+          "sed -i.bak \"s/--version=[0-9.]\\+/--version={{{newVersion}}}/g\" deploy/prometheus/Tiltfile && rm deploy/prometheus/Tiltfile.bak || true"
+        ],
+        "fileFilters": ["deploy/prometheus/Tiltfile"],
+        "executionMode": "update"
+      }
+    },
+    {
+      "description": [
+        "Apply a golden update label to helm chart values.yaml updates"
+      ],
+      "matchFileNames": [
+        "charts/my-server/chart/values.yaml",
+        "charts/my-system/chart/values.yaml"
+      ],
+      "matchManagers": ["custom.jsonata"],
+      "addLabels": ["update-golden"]
+    },
     {
       "description": ["Group all the web eslint and type packages together"],
       "matchFileNames": ["web/**"],
@@ -22,7 +104,7 @@
       "extends": ["schedule:weekly"],
       "addLabels": ["target:web", "type:internal"],
       "separateMajorMinor": false,
-      "minimumReleaseAge": "14 days"
+      "minimumReleaseAge": "7 days"
     },
     {
       "description": ["Group all the web test packages together"],
@@ -37,7 +119,7 @@
       "extends": ["schedule:weekly"],
       "addLabels": ["target:web", "type:internal"],
       "separateMajorMinor": false,
-      "minimumReleaseAge": "14 days"
+      "minimumReleaseAge": "7 days"
     },
     {
       "description": ["Group all the web storybook packages together"],
@@ -47,7 +129,173 @@
       "extends": ["schedule:weekly"],
       "addLabels": ["target:web", "type:internal"],
       "separateMajorMinor": false,
-      "minimumReleaseAge": "14 days"
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": ["Group all the web react core packages together"],
+      "matchFileNames": ["web/**"],
+      "matchPackageNames": [
+        "react",
+        "react-dom",
+        "@types/react",
+        "@types/react-dom"
+      ],
+      "groupName": "web-dependencies-react-core",
+      "extends": ["schedule:weekly"],
+      "addLabels": ["target:web", "type:internal"],
+      "separateMajorMinor": false,
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": ["Group all the web lodash packages together"],
+      "matchFileNames": ["web/**"],
+      "matchPackageNames": ["lodash", "@types/lodash"],
+      "groupName": "web-dependencies-lodash",
+      "extends": ["schedule:weekly"],
+      "addLabels": ["target:web", "type:internal"],
+      "separateMajorMinor": false,
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": ["Group all the web papaparse packages together"],
+      "matchFileNames": ["web/**"],
+      "matchPackageNames": ["papaparse", "@types/papaparse"],
+      "groupName": "web-dependencies-papaparse",
+      "extends": ["schedule:weekly"],
+      "addLabels": ["target:web", "type:internal"],
+      "separateMajorMinor": false,
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": ["Group all the web tailwind packages together"],
+      "matchFileNames": ["web/**"],
+      "matchPackageNames": [
+        "tailwindcss",
+        "tailwindcss-animate",
+        "clsx",
+        "class-variance-authority"
+      ],
+      "groupName": "web-dependencies-tailwind",
+      "extends": ["schedule:weekly"],
+      "addLabels": ["target:web", "type:internal"],
+      "separateMajorMinor": false,
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": ["Group all the web connectrpc packages together"],
+      "matchFileNames": ["web/**"],
+      "matchPackageNames": ["/^@bufbuild.*/", "/^@connectrpc.*/"],
+      "groupName": "web-dependencies-connectrpc",
+      "extends": ["schedule:weekly"],
+      "addLabels": ["target:web", "type:internal"],
+      "separateMajorMinor": false,
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": ["Group all the web radix-ui packages together"],
+      "matchFileNames": ["web/**"],
+      "matchPackageNames": ["/.*radix-ui.*/", "/.*lucide-react.*/"],
+      "groupName": "web-dependencies-radix-ui",
+      "extends": ["schedule:weekly"],
+      "addLabels": ["target:web", "type:internal"],
+      "separateMajorMinor": false,
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": ["Group all the web i18next packages together"],
+      "matchFileNames": ["web/**"],
+      "matchPackageNames": ["/.*i18next.*/"],
+      "groupName": "web-dependencies-i18next",
+      "extends": ["schedule:weekly"],
+      "addLabels": ["target:web", "type:internal"],
+      "separateMajorMinor": false,
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": ["Group all the web vite packages together"],
+      "matchFileNames": ["web/**"],
+      "matchPackageNames": [
+        "@module-federation/vite",
+        "vite-tsconfig-paths",
+        "vite",
+        "@vitejs/plugin-react"
+      ],
+      "groupName": "web-dependencies-vite",
+      "extends": ["schedule:weekly"],
+      "addLabels": ["target:web", "type:internal"],
+      "separateMajorMinor": false,
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": ["Group all the pulumi packages together"],
+      "matchPackageNames": ["/github.com/pulumi/pulumi.*/i"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "pulumi packages"
+    },
+    {
+      "description": ["Group all the DataDog dd-trace-go packages together"],
+      "matchPackageNames": ["/github.com/DataDog/dd-trace-go.*/i"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "dd-trace-go packages"
+    },
+    {
+      "description": ["Automatically merge patch updates for aws-sdk-go"],
+      "extends": ["monorepo:aws-sdk-go-v2"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "pr-comment",
+      "automergeComment": "/aviator merge"
+    },
+    {
+      "description": [
+        "Slow down updates that just change the digest. These updates are frequent."
+      ],
+      "matchUpdateTypes": ["digest"],
+      "extends": ["schedule:weekly"]
+    },
+    {
+      "description": ["GitHub Actions digest updates happen weekly."],
+      "matchUpdateTypes": ["digest"],
+      "matchDepTypes": ["action"],
+      "extends": ["schedule:weekly"]
+    },
+    {
+      "description": [
+        "Apply a gazelle update label to all Go dependency updates"
+      ],
+      "matchDatasources": ["bazel"],
+      "addLabels": ["run-gazelle"]
+    },
+    {
+      "description": "Mise releases almost daily, only check for mise updates weekly",
+      "matchDatasources": ["github-releases"],
+      "matchDepNames": ["jdx/mise"],
+      "extends": ["schedule:weekly"]
+    },
+    {
+      "description": [
+        "Group helm.sh/helm Go module and helm mise tool together"
+      ],
+      "matchPackageNames": ["/^helm\\.sh\\/helm\\/.*/", "helm/helm", "helm"],
+      "groupName": "helm packages"
+    },
+    {
+      "description": ["Group Playwright NPM module with mise tool"],
+      "matchManagers": ["npm"],
+      "matchDepNames": ["@playwright/test"],
+      "extends": ["schedule:weekly"],
+      "addLabels": ["target:web", "type:internal"],
+      "groupName": "playwright-packages",
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": ["Group Playwright mise tool with NPM module"],
+      "matchManagers": ["mise"],
+      "matchDepNames": ["npm:playwright"],
+      "extends": ["schedule:weekly"],
+      "addLabels": ["target:web", "type:internal"],
+      "groupName": "playwright-packages",
+      "minimumReleaseAge": "7 days"
     }
   ]
 }

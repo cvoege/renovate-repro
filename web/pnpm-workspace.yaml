@@ -2,5 +2,5 @@ packages:
   - "."
 
 # Use minimumReleaseAge to reduce risk of supply chain attacks by delaying installation
-# of new package versions. 20160 minutes = 14 days.
-minimumReleaseAge: 20160
+# of new package versions. 8640 minutes = 6 days.
+minimumReleaseAge: 8640
