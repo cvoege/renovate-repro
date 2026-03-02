@@ -54,6 +54,12 @@
   ],
   "packageRules": [
     {
+      "description": "Override npm minimum release age to 7 days (security:minimumReleaseAgeNpm defaults to 3)",
+      "matchDatasources": ["npm"],
+      "minimumReleaseAge": "7 days",
+      "internalChecksFilter": "strict"
+    },
+    {
       "description": ["Enable automatic Go version updates in go.mod"],
       "matchManagers": ["gomod"],
       "matchDepNames": ["go"],
