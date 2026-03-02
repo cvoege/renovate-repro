@@ -8,4 +8,4 @@ fetch_remote_versions_timeout = "20s"
 
 [tools]
 node = "24.11.1"
-pnpm = "10.26.0"
+pnpm = "10.30.1"
